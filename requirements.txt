@@ -1,0 +1,7 @@
+numpy
+shapely
+rasterio
+pyproj
+cchardet
+aiohttp
+uvloop
