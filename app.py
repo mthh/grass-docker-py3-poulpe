@@ -210,7 +210,7 @@ async def interviz_wrapper(request):
     return web.Response(text=res)
 
 
-def interviz(path_info, coordinates, height1, height2, max_distance="-1"):
+def interviz(path_info, coordinates, height1, height2, max_distance):
     import grass.script as GRASS
     try:
         uid = str(uuid.uuid4()).replace('-', '')

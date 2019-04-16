@@ -132,8 +132,11 @@
                       <strong>Options</strong>
                   </div>
                   <div class="modal-body">
-                    <p><span>Height 1</span><input id="h1-input" type="number" step="0.1"></input></p>
-                    <p><span>Height 2</span><input id="h2-input" type="number" step="0.1"></input></p>
+                    <div style="display: table-caption;">
+                      <p><span>Height 1</span><input id="h1-input" min="0.0" type="number" step="0.1"></input></p>
+                      <p><span>Height 2</span><input id="h2-input" min="0.0" type="number" step="0.1"></input></p>
+                      <p><span>Max distance (km)</span><input id="mdist-input" type="number" min="0.0" max="75" step="0.1"></input></p>
+                    </div>
                     <div id="coords-location" style="padding: 5px;font-size: 0.8em;font-style: italic;">
                     </div>
                     <div id="modal-error" style="background: red; display: none; color: white; font-weight: bold;">
@@ -159,12 +162,14 @@
                 <div class="modal-header">
                     <strong>Options</strong>
                 </div>
-                <div class="modal-body" style="display: table-caption;">
-                  <p><span>Year</span><input id="year-input" type="number" min="1950" max="2020" step="1"></input></p>
-                  <p><span>Month</span><input id="month-input" type="number" min="1" max="12" step="1"></input></p>
-                  <p><span>Day</span><input id="day-input" type="number" min="1" max="31" step="1"></input></p>
-                  <p><span>Hour</span><input id="hour-input" type="number" min="0" max="23" step="1"></input></p>
-                  <p><span>Minute</span><input id="minute-input" type="number" min="0" max="59" step="1"></input></p>
+                <div class="modal-body">
+                  <div style="display: table-caption;">
+                    <p><span>Year</span><input id="year-input" type="number" min="1950" max="2020" step="1"></input></p>
+                    <p><span>Month</span><input id="month-input" type="number" min="1" max="12" step="1"></input></p>
+                    <p><span>Day</span><input id="day-input" type="number" min="1" max="31" step="1"></input></p>
+                    <p><span>Hour</span><input id="hour-input" type="number" min="0" max="23" step="1"></input></p>
+                    <p><span>Minute</span><input id="minute-input" type="number" min="0" max="59" step="1"></input></p>
+                  </div>
                   <div id="coords-location" style="padding: 5px;font-size: 0.8em;font-style: italic;">
                   </div>
                   <div id="modal-error" style="background: red; display: none; color: white; font-weight: bold;">
@@ -333,6 +338,7 @@ function sunmaskEndModal() {
 
 document.getElementById('compute_sunmask').addEventListener('click', (event) => {
   modal_sunmask.open();
+  document.querySelector('.loader').style.display = null;
 });
 
 document.getElementById('compute_viewshed').addEventListener('click', (event) => {
@@ -358,14 +364,15 @@ map.on('click', (e) => {
 function intervizEndModal() {
   let h1 = document.getElementById('h1-input');
   let h2 = document.getElementById('h2-input');
+  let mdist = document.getElementById('mdist-input');
   let c = document.getElementById('coords-location');
   let _c = c.innerHTML.split(',').map(a => +a);
-  if (!is_num(h1.value) || !is_num(h2.value)) {
+  if (!is_num(h1.value) || !is_num(h2.value) || !is_num(mdist.value)) {
     document.querySelector('#modal-interviz #modal-error').style.display = null;
     return;
   }
   modal_interviz.close();
-  fetch(`/viewshed?coordinates=${c.innerHTML}&height1=${h1.value}&height2=${h2.value}`, {
+  fetch(`/viewshed?coordinates=${c.innerHTML}&height1=${h1.value}&height2=${h2.value}&max_distance=${Math.round(+mdist.value * 1000)}`, {
     method: 'GET',
   })
     .then(res => res.json())
