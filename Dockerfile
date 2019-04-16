@@ -171,9 +171,9 @@ RUN grass --config revision version
 WORKDIR /home
 RUN mkdir /home/app && cd /home/app
 COPY index.html /home/app/index.html
-COPY grenoble_est_eudem_2154.zip /home/app/grenoble_est_eudem_2154.zip
+COPY *.zip /home/app/
 COPY app.py /home/app/app.py
 WORKDIR /home/app
-RUN unzip grenoble_est_eudem_2154.zip
+RUN unzip *.zip
 EXPOSE 5000
 CMD python3 app.py
