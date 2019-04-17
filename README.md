@@ -24,7 +24,7 @@ Returns a GeoJSON FeatureCollection corresponding to the zone of visibility.
 ```
 curl "http://localhost:5000/sunmask?year=2000&month=12&day=1&hour=15&minute=49&center=45.2900000,5.784999961"
 ```
-Returns a GeoJSON FeatureCollection corresponding to the zone reachable by the sun.
+Returns a GeoJSON FeatureCollection corresponding to the zone not reachable by the sun.
 
 
 See GRASS r.viewshed and r.sunmask documentation for details on the methods used.

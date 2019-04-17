@@ -121,6 +121,7 @@
       <div class="menu">
         <button style="margin: auto;" id="compute_viewshed">Calculer bassin de visibilité</button>
         <button style="margin: auto;" id="compute_sunmask">Calculer Soleil-Ombre autour du centre de la carte</button>
+        <button style="margin: auto;" id="delete_layers">Supprimer toutes les couches</button>
       </div>
       <div style="display:none;" class="loader">Computing viewshed...</div>
     </div>
@@ -383,7 +384,7 @@ function intervizEndModal() {
         geometry: new ol.geom.Point(ol.proj.transform([_c[1], _c[0]], 'EPSG:4326', 'EPSG:3857')),
       }))
       features = features.concat((new ol.format.GeoJSON()).readFeatures(res, {
-          featureProjection: 'EPSG:3857'
+          featureProjection: 'EPSG:3857',
       }))
       let _geojson_vectorLayer = new ol.layer.Vector({
         source: new ol.source.Vector({
@@ -421,6 +422,7 @@ function intervizEndModal() {
   h1.value = null;
   h2.value = null;
   c.innerHTML = '';
+  mdist.value = null;
 }
 
 ['interviz', 'sunmask']
@@ -439,6 +441,15 @@ function intervizEndModal() {
     .onclick = () => { modal_interviz.close(); };
   document.querySelector(`#modal-sunmask #cancel-modal`)
     .onclick = () => { modal_sunmask.close(); };
+  document.getElementById('delete_layers')
+    .onclick = () => {
+      map.getLayers()
+        .forEach((l) => {
+          if (l.type === 'VECTOR') {
+            map.removeLayer(l);
+          }
+        })
+      };
     </script>
   </body>
 </html>
