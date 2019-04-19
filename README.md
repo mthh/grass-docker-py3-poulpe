@@ -1,4 +1,4 @@
-### Docker container to expose `r.viewshed` and `r.sunmask` functionnalities from GRASS 7.7
+### Docker container to expose GRASS 7.7 `r.viewshed` and `r.sunmask` functionnalities
 
 Note: *This container is based on the [DEVELOPMENT VERSION of GRASS](https://trac.osgeo.org/grass/wiki/DownloadSource#SubversionGRASSmainsourcecoderepository) (current state of the trunk).*  
 
