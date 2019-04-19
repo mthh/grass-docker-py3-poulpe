@@ -112,7 +112,7 @@
     <link rel="stylesheet" href="https://unpkg.com/animate.css/animate.css" type="text/css" />
     <link rel="stylesheet" href="https://unpkg.com/rmodal/dist/rmodal.css" type="text/css" />
     <script type="text/javascript" src="https://unpkg.com/rmodal/dist/rmodal.js"></script>
-    <title>Intervisibility with GRASS r.viewshed</title>
+    <title>Sunmask and intervisibility with GRASS</title>
   </head>
   <body>
     <h4></h4>
@@ -302,7 +302,7 @@ function sunmaskEndModal() {
   updatePermalink();
   modal_sunmask.close();
   let coords = ol.proj.toLonLat(map.getView().getCenter());
-  fetch(`/sunmask?year=${year.value}&month=${month.value}&day=${day.value}&hour=${hour.value}&minute=${minute.value}&center=${coords[1]},${coords[0]}`, {
+  fetch(`/sunmask?year=${year.value}&month=${month.value}&day=${day.value}&hour=${hour.value}&minute=${minute.value}&coordinates=${coords[1]},${coords[0]}`, {
     method: 'GET',
   })
   .then(res => res.json())

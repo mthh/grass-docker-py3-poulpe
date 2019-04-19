@@ -182,6 +182,8 @@ def _validate_coordinates(coords, _to_projected, info_dem):
 
 
 def _validate_number(h):
+    # Will raise a ValueError if 'h' isn't / can't be converted
+    # to 'float' :
     float(h)
     return h
 
@@ -285,6 +287,9 @@ def interviz(path_info, coordinates, height1, height2, max_distance):
     return out.decode()
 
 def _validate_datetime(year, month, day, hour, minute):
+    # In order to raise a ValueError if one of them
+    # isn't (or cannot be converted to) an 'int' :
+    int(year) + int(month) + int(day) + int(hour) + int(minute)
     return (year, month, day, hour, minute)
 
 async def sunmask_wrapper(request):
@@ -297,10 +302,14 @@ async def sunmask_wrapper(request):
             request.rel_url.query['minute'],
         )
         c = _validate_coordinates(
-            request.rel_url.query['center'],
+            request.rel_url.query['coordinates'],
             request.app['to_proj'],
             request.app['info_dem'],
         )
+        max_distance = int(request.rel_url.query.get('max_distance', '4000'))
+        tz = _validate_number(request.rel_url.query.get('timezone', '1'))
+        if not 0 <= int(tz) <= 25:
+            raise ValueError('Invalid timezone')
     except Exception as e:
         return web.Response(
             text=json.dumps({"message": "Error : {}".format(e)}))
@@ -310,13 +319,12 @@ async def sunmask_wrapper(request):
         sunmask,
         request.app['path_info'],
         request.app['info_dem'],
-        d,
-        c,
+        d, c, max_distance, tz,
     )
 
     return web.Response(text=res)
 
-def sunmask(path_info, info_dem, d, coordinates):
+def sunmask(path_info, info_dem, d, coordinates, max_distance, tz):
     c = list(map(lambda x: float(x), coordinates.split(',')))
     import grass.script as GRASS
     try:
@@ -328,10 +336,10 @@ def sunmask(path_info, info_dem, d, coordinates):
         ### we use that reduced region :
         GRASS.read_command(
             'g.region',
-            n=str(c[1] + 4000),
-            s=str(c[1] - 4000),
-            e=str(c[0] + 4000),
-            w=str(c[0] - 4000),
+            n=str(c[1] + max_distance),
+            s=str(c[1] - max_distance),
+            e=str(c[0] + max_distance),
+            w=str(c[0] - max_distance),
             nsres=info_dem['nsres'],
             ewres=info_dem['ewres'],
         )
@@ -346,7 +354,7 @@ def sunmask(path_info, info_dem, d, coordinates):
             day=d[2],
             hour=d[3],
             minute=d[4],
-            timezone="1",
+            timezone=tz,
             output=grass_name,
         )
         print(res)
