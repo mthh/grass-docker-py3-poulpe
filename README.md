@@ -1,9 +1,9 @@
-### Docker container to expose GRASS 7.7 `r.viewshed` and `r.sunmask` functionnalities
+## Docker container to expose GRASS 7.7 `r.viewshed` and `r.sunmask` functionnalities
 
 Note: *This container is based on the [DEVELOPMENT VERSION of GRASS](https://trac.osgeo.org/grass/wiki/DownloadSource#SubversionGRASSmainsourcecoderepository) (current state of the trunk).*  
 
 
-#### Usage :
+### Usage :
 
 *A zip archive (containing a .tif file : the DEM to use) is expected to be in the same folder as the Dockerfile (and that geotiff file must have a valid projection which can be decribed by an EPSG code).*  
 
@@ -20,7 +20,7 @@ docker run --publish "5000:5000" -it "test_interviz_grass:latest"
 
 - Go on http://localhost:5000/ to test it interactively or query the API on http://localhost:5000/viewshed and http://localhost:5000/sunmask. Example :
 
-##### Viewshed
+#### Viewshed
 
 ```
 curl "http://localhost:5000/viewshed?coordinates=45.362277645,5.68130493&height1=1.2&height2=1.3"
@@ -39,7 +39,7 @@ curl "http://localhost:5000/viewshed?coordinates=45.362277645,5.68130493&height1
 
 Returns a GeoJSON FeatureCollection corresponding to the zone of visibility.  
 
-##### Sunmask
+#### Sunmask
 
 ```
 curl "http://localhost:5000/sunmask?coordinates=45.2900000,5.784999961&year=2000&month=10&day=1&hour=15&minute=49"
@@ -51,8 +51,8 @@ curl "http://localhost:5000/sunmask?coordinates=45.2900000,5.784999961&year=2000
 | year         | Integer with 1950 <= year < 2050.           |
 | month        | Integer with 0 < month <= 12.               |
 | day          | Integer with 0 < day <= 31.                 |
-| hour         | Integer with 0 < hour <= 24.                |
-| minute       | Integer with 0 < minute <= 60.              |
+| hour         | Integer with 0 <= hour < 24.                |
+| minute       | Integer with 0 <= minute < 60.              |
 
 | Option        | Description                                                                   |
 |---------------|-------------------------------------------------------------------------------|
