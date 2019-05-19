@@ -34,7 +34,7 @@ curl "http://localhost:5000/viewshed?coordinates=45.362277645,5.68130493&height1
 
 | Option        | Description                                                                   |
 |---------------|-------------------------------------------------------------------------------|
-|  max_distance | Integer > 0. Maximum visibility radius (in kilometers). Defaults to 22km. |
+|  max_distance | Integer > 0. Maximum visibility radius (in meters). Defaults to 22000m.       |
 
 
 Returns a GeoJSON FeatureCollection corresponding to the zone of visibility.  
@@ -56,7 +56,7 @@ curl "http://localhost:5000/sunmask?coordinates=45.2900000,5.784999961&year=2000
 
 | Option        | Description                                                                   |
 |---------------|-------------------------------------------------------------------------------|
-| max_distance  | Integer > 0. Maximum computation radius (in kilometers). Defaults to 4km.     |
+| max_distance  | Integer > 0. Maximum computation radius (in meters). Defaults to 4000m.       |
 | timezone      | Integer >= 0. East positive, offset from GMT. Defaults to 1.                  |
 
 
