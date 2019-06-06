@@ -73,18 +73,20 @@ RUN apt-get update && apt-get upgrade -y && \
 
 RUN echo LANG="en_US.UTF-8" > /etc/default/locale
 
-# download grass gis source
-WORKDIR /src
+# download grass gis source from git
+ARG SOURCE_GIT_URL=https://github.com
+ARG SOURCE_GIT_REMOTE=OSGeo
+ARG SOURCE_GIT_REPO=grass
+ARG SOURCE_GIT_BRANCH=master
 
-RUN mkdir -p /src/
-RUN  git clone https://github.com/OSGeo/grass.git && mv grass grass_build
+WORKDIR /src
+ADD https://api.github.com/repos/$SOURCE_GIT_REMOTE/$SOURCE_GIT_REPO/git/refs/heads/$SOURCE_GIT_BRANCH version.json
+RUN git clone -b ${SOURCE_GIT_BRANCH} --single-branch ${SOURCE_GIT_URL}/${SOURCE_GIT_REMOTE}/${SOURCE_GIT_REPO}.git grass_build
 WORKDIR /src/grass_build
 
 # Set environmental variables for GRASS GIS compilation, without debug symbols
-ENV INTEL "-march=native -std=gnu99 -fexceptions -fstack-protector -m64"
-ENV MYCFLAGS "-O2 -fno-fast-math -fno-common $INTEL"
-ENV MYLDFLAGS "-s -Wl,--no-undefined"
-# CXX stuff:
+ENV MYCFLAGS "-O2 -std=gnu99 -m64"
+ENV MYLDFLAGS "-s"
 ENV LD_LIBRARY_PATH "/usr/local/lib"
 ENV LDFLAGS "$MYLDFLAGS"
 ENV CFLAGS "$MYCFLAGS"
@@ -121,7 +123,6 @@ RUN /src/grass_build/configure \
     && make install && ldconfig
 
 # Unset environmental variables to avoid later compilation issues
-ENV INTEL ""
 ENV MYCFLAGS ""
 ENV MYLDFLAGS ""
 ENV MYCXXFLAGS ""
@@ -138,8 +139,6 @@ ENV GRASS_SKIP_MAPSET_OWNER_CHECK 1
 # Create generic GRASS GIS binary name regardless of version number
 RUN ln -sf `find /usr/local/bin -name "grass??" | sort | tail -n 1` /usr/local/bin/grass
 
-RUN grass --config svn_revision version
-
 # Reduce the image size
 RUN apt-get autoremove -y
 RUN apt-get clean -y
@@ -152,6 +151,7 @@ RUN pip3 install -r /scripts/requirements.txt
 RUN update-alternatives --install /usr/bin/python python /usr/bin/python3 1
 RUN update-alternatives --remove python /usr/bin/python3
 
+
 # add GRASS GIS envs for python usage
 ENV GISBASE "/usr/local/grass77/"
 ENV GRASSBIN "/usr/local/bin/grass"
@@ -161,7 +161,6 @@ ENV LD_LIBRARY_PATH "$LD_LIBRARY_PATH:$GISBASE/lib"
 WORKDIR /grassdb
 VOLUME /grassdb
 
-RUN grass --config revision version
 WORKDIR /home
 RUN mkdir /home/app && cd /home/app
 COPY index.html /home/app/index.html
