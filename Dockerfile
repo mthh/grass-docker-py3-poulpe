@@ -75,16 +75,10 @@ RUN echo LANG="en_US.UTF-8" > /etc/default/locale
 
 # download grass gis source
 WORKDIR /src
-# this line should break docker cache if there are changes - weekly updated
-ADD https://grass.osgeo.org/grass${GRASS_SHORT_VERSION}/source/snapshot/ChangeLog.gz /src/ChangeLog.gz
-RUN wget https://grass.osgeo.org/grass${GRASS_SHORT_VERSION}/source/snapshot/grass-${GRASS_VERSION}.svn_src_snapshot_latest.tar.gz
-RUN mkdir -p /src/grass_build && \
-    tar xfz grass-$GRASS_VERSION.svn_src_snapshot_latest.tar.gz --strip=1 -C /src/grass_build && \
-    rm -f grass-$GRASS_VERSION.svn_src_snapshot_latest.tar.gz
+
+RUN mkdir -p /src/
+RUN  git clone https://github.com/OSGeo/grass.git && mv grass grass_build
 WORKDIR /src/grass_build
-# this line should break docker cache if there are changes after snapshot
-ADD https://svn.osgeo.org/grass/grass/ /src/TrunkRevision.html
-RUN svn update
 
 # Set environmental variables for GRASS GIS compilation, without debug symbols
 ENV INTEL "-march=native -std=gnu99 -fexceptions -fstack-protector -m64"
