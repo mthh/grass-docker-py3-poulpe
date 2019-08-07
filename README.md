@@ -1,7 +1,8 @@
 ## Docker container to expose GRASS 7.7 `r.viewshed` and `r.sunmask` functionnalities
 
-Note: *This container is based on the [DEVELOPMENT VERSION of GRASS](https://trac.osgeo.org/grass/wiki/DownloadSource#SubversionGRASSmainsourcecoderepository) (current state of the trunk).*  
+Note: *This container is based on the [development version of GRASS](https://trac.osgeo.org/grass/wiki/DownloadSource#GitGRASSmainsourcecoderepository) (current state of the master branch when building the container).*  
 
+Note: *See the ['with_region'](https://github.com/mthh/grass-docker-py3-poulpe/tree/with_region) branch for the same container allowing to specify the region on each query (instead of 'max_distance').*
 
 ### Usage :
 
