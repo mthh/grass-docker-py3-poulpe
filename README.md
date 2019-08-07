@@ -1,6 +1,6 @@
-## Docker container to expose GRASS 7.7 `r.viewshed` and `r.sunmask` functionnalities
+## Docker container to expose GRASS 7.8 `r.viewshed` and `r.sunmask` functionnalities
 
-Note: *This container is based on the [development version of GRASS](https://trac.osgeo.org/grass/wiki/DownloadSource#GitGRASSmainsourcecoderepository) (current state of the master branch when building the container).*  
+Note: *This container is based on the [release branch of GRASS 7.8](https://trac.osgeo.org/grass/wiki/DownloadSource) (current state of the tree when building the container).*  
 
 
 ### Usage :
@@ -25,7 +25,7 @@ curl "http://localhost:5000/viewshed?coordinates=45.362277645,5.68130493&height1
 ```
 
 ```
-curl "http://localhost:5000/viewshed?coordinates=45.362277645,5.68130493&height1=1.2&height2=1.3&region=5.70,5.80,45.47,45.52"
+curl "http://localhost:5000/viewshed?coordinates=45.36,5.68&height1=1.2&height2=1.3&region=5.60,5.80,45.35,45.52"
 ```
 
 | Parameter    | Description                                                                       |
@@ -44,16 +44,15 @@ Returns a GeoJSON FeatureCollection corresponding to the zone of visibility.
 #### Sunmask
 
 ```
-curl "http://localhost:5000/sunmask?coordinates=45.29,5.785&year=2000&month=10&day=1&hour=15&minute=49"
+curl "http://localhost:5000/sunmask?year=2000&month=10&day=1&hour=15&minute=49"
 ```
 
 ```
-curl "http://localhost:5000/sunmask?coordinates=45.29,5.785&year=2000&month=10&day=1&hour=15&minute=49&timezone=2&region=5.70,5.80,45.47,45.52"
+curl "http://localhost:5000/sunmask?year=2000&month=10&day=1&hour=15&minute=49&region=5.60,5.80,45.35,45.52"
 ```
 
 | Parameter    | Description                                 |
 |--------------|---------------------------------------------|
-| coordinates  | String of format {latitude},{longitude}.    |
 | year         | Integer with 1950 <= year < 2050.           |
 | month        | Integer with 0 < month <= 12.               |
 | day          | Integer with 0 < day <= 31.                 |

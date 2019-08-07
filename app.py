@@ -19,7 +19,7 @@ import uvloop
 from aiohttp import web
 from functools import partial
 from pyproj import Proj, transform
-from concurrent.futures import ThreadPoolExecutor, ProcessPoolExecutor
+from concurrent.futures import ProcessPoolExecutor
 from rasterio.features import shapes as rio_shapes
 
 
@@ -58,6 +58,7 @@ def get_extent_proj(path):
             'nsres': f.res[1],
         }
 
+
 def init_grass(info_dem):
     grass_bin = 'grass'
     startcmd = grass_bin + ' --config path'
@@ -80,7 +81,7 @@ def init_grass(info_dem):
 
     try:
         os.stat(gisdb)
-    except:
+    except FileNotFoundError:
         os.mkdir(gisdb)
 
     location = binascii.hexlify(os.urandom(12)).decode()
@@ -159,13 +160,14 @@ def init_grass(info_dem):
         },
     )
 
+
 def _validate_region(region_coords, _to_projected, info_dem):
     if region_coords is None:
         return None
     _coords = list(map(lambda x: float(x), region_coords.split(',')))
     _coords[0], _coords[2] = _to_projected(_coords[0], _coords[2])
     _coords[1], _coords[3] = _to_projected(_coords[1], _coords[3])
-    if _coords[0] >= info_dem['w'] or _coords[0] <= info_dem['e'] \
+    if _coords[0] <= info_dem['w'] or _coords[0] >= info_dem['e'] \
             or _coords[2] >= info_dem['n'] or _coords[2] <= info_dem['s']:
         raise ValueError(
             'Requested region {} is outside the allowed region '
@@ -183,6 +185,7 @@ def _validate_region(region_coords, _to_projected, info_dem):
         's': str(_coords[2]),
         'n': str(_coords[3]),
     }
+
 
 def _validate_coordinates(coords, _to_projected, info_dem):
     _coords = list(map(lambda x: float(x), coords.split(',')))
@@ -264,7 +267,7 @@ def interviz(path_info, coordinates, height1, height2, region):
             coordinates=coordinates,
             observer_elevation=height1,
             target_elevation=height2,
-            max_distance=max_distance,
+            # max_distance=max_distance,
             refraction_coeff="0.14286",
             memory="1000",
             flags='b',
@@ -335,33 +338,30 @@ def interviz(path_info, coordinates, height1, height2, region):
 
     return out.decode()
 
+
 def _validate_datetime(year, month, day, hour, minute):
     # In order to raise a ValueError if one of them
     # isn't (or cannot be converted to) an 'int' :
     int(year) + int(month) + int(day) + int(hour) + int(minute)
     return (year, month, day, hour, minute)
 
+
 async def sunmask_wrapper(request):
     try:
-        d = _validate_datetime(
+        datetime = _validate_datetime(
             request.rel_url.query['year'],
             request.rel_url.query['month'],
             request.rel_url.query['day'],
             request.rel_url.query['hour'],
             request.rel_url.query['minute'],
         )
-        c = _validate_coordinates(
-            request.rel_url.query['coordinates'],
-            request.app['to_proj'],
-            request.app['info_dem'],
-        )
         region = _validate_region(
             request.rel_url.query.get('region', None),
             request.app['to_proj'],
             request.app['info_dem'],
         )
-        tz = _validate_number(request.rel_url.query.get('timezone', '1'))
-        if not 0 <= int(tz) <= 25:
+        timezone = _validate_number(request.rel_url.query.get('timezone', '1'))
+        if not 0 <= int(timezone) <= 25:
             raise ValueError('Invalid timezone')
     except Exception as e:
         return web.Response(
@@ -372,13 +372,15 @@ async def sunmask_wrapper(request):
         sunmask,
         request.app['path_info'],
         request.app['info_dem'],
-        d, c, region, tz,
+        datetime,
+        region,
+        timezone,
     )
 
     return web.Response(text=res)
 
-def sunmask(path_info, info_dem, d, coordinates, region, tz):
-    c = list(map(lambda x: float(x), coordinates.split(',')))
+
+def sunmask(path_info, info_dem, d, region, tz):
     import grass.script as GRASS
     try:
         uid = str(uuid.uuid4()).replace('-', '')
@@ -386,6 +388,8 @@ def sunmask(path_info, info_dem, d, coordinates, region, tz):
         output_name = os.path.join(path_info['gisdb'], '.'.join([uid, 'tif']))
 
         if region:
+            GRASS.message(
+                '--- GRASS GIS 7: Reducing the region')
             GRASS.read_command(
                 'g.region',
                 n=region['n'],
@@ -433,6 +437,8 @@ def sunmask(path_info, info_dem, d, coordinates, region, tz):
         print(res)
 
         if region:
+            GRASS.message(
+                '--- GRASS GIS 7: Restoring the region')
             GRASS.read_command(
                 'g.region',
                 n=info_dem['n'],

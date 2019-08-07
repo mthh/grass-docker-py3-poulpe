@@ -2,8 +2,8 @@ FROM ubuntu:18.04
 
 ENV DEBIAN_FRONTEND noninteractive
 
-ARG GRASS_VERSION=7.7
-ARG GRASS_SHORT_VERSION=77
+ARG GRASS_VERSION=7.8
+ARG GRASS_SHORT_VERSION=78
 
 SHELL ["/bin/bash", "-c"]
 
@@ -77,7 +77,7 @@ RUN echo LANG="en_US.UTF-8" > /etc/default/locale
 ARG SOURCE_GIT_URL=https://github.com
 ARG SOURCE_GIT_REMOTE=OSGeo
 ARG SOURCE_GIT_REPO=grass
-ARG SOURCE_GIT_BRANCH=master
+ARG SOURCE_GIT_BRANCH=releasebranch_7_8
 
 WORKDIR /src
 ADD https://api.github.com/repos/$SOURCE_GIT_REMOTE/$SOURCE_GIT_REPO/git/refs/heads/$SOURCE_GIT_BRANCH version.json
@@ -95,7 +95,7 @@ ENV CXXFLAGS "$MYCXXFLAGS"
 # Fixup python shebangs - TODO: will be resolved in future by grass-core
 WORKDIR /src/grass_build
 RUN find -name '*.py' | xargs sed -i 's,#!/usr/bin/env python,#!/usr/bin/env python3,'
-RUN sed -i 's,python,python3,' include/Make/Platform.make.in
+RUN find -name '*.py' | xargs sed -i 's,#!/usr/bin/env python33,#!/usr/bin/env python3,'
 
 # Configure compile and install GRASS GIS
 ENV GRASS_PYTHON=/usr/bin/python3
@@ -153,7 +153,7 @@ RUN update-alternatives --remove python /usr/bin/python3
 
 
 # add GRASS GIS envs for python usage
-ENV GISBASE "/usr/local/grass77/"
+ENV GISBASE "/usr/local/grass78/"
 ENV GRASSBIN "/usr/local/bin/grass"
 ENV PYTHONPATH "${PYTHONPATH}:$GISBASE/etc/python/"
 ENV LD_LIBRARY_PATH "$LD_LIBRARY_PATH:$GISBASE/lib"
