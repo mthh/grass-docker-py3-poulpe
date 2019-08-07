@@ -1,6 +1,6 @@
 ## Docker container to expose GRASS 7.7 `r.viewshed` and `r.sunmask` functionnalities
 
-Note: *This container is based on the [DEVELOPMENT VERSION of GRASS](https://trac.osgeo.org/grass/wiki/DownloadSource#SubversionGRASSmainsourcecoderepository) (current state of the trunk).*  
+Note: *This container is based on the [development version of GRASS](https://trac.osgeo.org/grass/wiki/DownloadSource#GitGRASSmainsourcecoderepository) (current state of the master branch when building the container).*  
 
 
 ### Usage :
@@ -26,15 +26,19 @@ docker run --publish "5000:5000" -it "test_interviz_grass:latest"
 curl "http://localhost:5000/viewshed?coordinates=45.362277645,5.68130493&height1=1.2&height2=1.3"
 ```
 
+```
+curl "http://localhost:5000/viewshed?coordinates=45.362277645,5.68130493&height1=1.2&height2=1.3&region=5.70,5.80,45.47,45.52"
+```
+
 | Parameter    | Description                                                                       |
 |--------------|-----------------------------------------------------------------------------------|
 | coordinates  | String of format {latitude},{longitude}.                                          |
 | height1      | Double or integer >= 0. Viewing elevation above the ground (in meters).           |
 | height2      | Double or integer >= 0. Offset for target elevation above the ground (in meters). |
 
-| Option        | Description                                                                   |
-|---------------|-------------------------------------------------------------------------------|
-|  max_distance | Integer > 0. Maximum visibility radius (in meters). Defaults to 22000m.       |
+| Option     | Description                                                                                             |
+|------------|---------------------------------------------------------------------------------------------------------|
+|  region    | String of format {west},{east},{sud},{north}. The region to use. Defaults to the region of the dataset. |
 
 
 Returns a GeoJSON FeatureCollection corresponding to the zone of visibility.  
@@ -42,7 +46,11 @@ Returns a GeoJSON FeatureCollection corresponding to the zone of visibility.
 #### Sunmask
 
 ```
-curl "http://localhost:5000/sunmask?coordinates=45.2900000,5.784999961&year=2000&month=10&day=1&hour=15&minute=49"
+curl "http://localhost:5000/sunmask?coordinates=45.29,5.785&year=2000&month=10&day=1&hour=15&minute=49"
+```
+
+```
+curl "http://localhost:5000/sunmask?coordinates=45.29,5.785&year=2000&month=10&day=1&hour=15&minute=49&timezone=2&region=5.70,5.80,45.47,45.52"
 ```
 
 | Parameter    | Description                                 |
@@ -54,10 +62,10 @@ curl "http://localhost:5000/sunmask?coordinates=45.2900000,5.784999961&year=2000
 | hour         | Integer with 0 <= hour < 24.                |
 | minute       | Integer with 0 <= minute < 60.              |
 
-| Option        | Description                                                                   |
-|---------------|-------------------------------------------------------------------------------|
-| max_distance  | Integer > 0. Maximum computation radius (in meters). Defaults to 4000m.       |
-| timezone      | Integer >= 0. East positive, offset from GMT. Defaults to 1.                  |
+| Option    | Description                                                                                             |
+|-----------|---------------------------------------------------------------------------------------------------------|
+| region    | String of format {west},{east},{sud},{north}. The region to use. Defaults to the region of the dataset. |
+| timezone  | Integer >= 0. East positive, offset from GMT. Defaults to 1.                                            |
 
 
 Returns a GeoJSON FeatureCollection corresponding to areas of cast shadow at the given datetime.

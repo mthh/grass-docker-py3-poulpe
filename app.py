@@ -42,9 +42,6 @@ async def error_middleware(app, handler):
     return middleware_handler
 
 
-async def index_handler(request):
-    return web.FileResponse('index.html')
-
 def get_extent_proj(path):
     with rio.open(path) as f:
         crs = f.read_crs()
@@ -162,6 +159,30 @@ def init_grass(info_dem):
         },
     )
 
+def _validate_region(region_coords, _to_projected, info_dem):
+    if region_coords is None:
+        return None
+    _coords = list(map(lambda x: float(x), region_coords.split(',')))
+    _coords[0], _coords[2] = _to_projected(_coords[0], _coords[2])
+    _coords[1], _coords[3] = _to_projected(_coords[1], _coords[3])
+    if _coords[0] >= info_dem['w'] or _coords[0] <= info_dem['e'] \
+            or _coords[2] >= info_dem['n'] or _coords[2] <= info_dem['s']:
+        raise ValueError(
+            'Requested region {} is outside the allowed region '
+            '(xmin={}, xmax={}, ymin={}, ymax={})'
+            .format(
+                _coords,
+                info_dem['w'],
+                info_dem['e'],
+                info_dem['s'],
+                info_dem['n'],
+            ))
+    return {
+        'w': str(_coords[0]),
+        'e': str(_coords[1]),
+        's': str(_coords[2]),
+        'n': str(_coords[3]),
+    }
 
 def _validate_coordinates(coords, _to_projected, info_dem):
     _coords = list(map(lambda x: float(x), coords.split(',')))
@@ -197,7 +218,12 @@ async def interviz_wrapper(request):
         )
         h1 = _validate_number(request.rel_url.query['height1'])
         h2 = _validate_number(request.rel_url.query['height2'])
-        m_dist = _validate_number(request.rel_url.query.get('max_distance', '22000'))
+        region = _validate_region(
+            request.rel_url.query.get('region', None),
+            request.app['to_proj'],
+            request.app['info_dem'],
+        )
+
     except Exception as e:
         return web.Response(
             text=json.dumps({"message": "Error : {}".format(e)}))
@@ -206,18 +232,30 @@ async def interviz_wrapper(request):
         request.app["ProcessPool"],
         interviz,
         request.app['path_info'],
-        c, h1, h2, m_dist,
+        c, h1, h2, region,
     )
 
     return web.Response(text=res)
 
 
-def interviz(path_info, coordinates, height1, height2, max_distance):
+def interviz(path_info, coordinates, height1, height2, region):
     import grass.script as GRASS
     try:
         uid = str(uuid.uuid4()).replace('-', '')
         grass_name = "output_{}".format(uid)
         output_name = os.path.join(path_info['gisdb'], '.'.join([uid, 'tif']))
+
+        if region:
+            GRASS.read_command(
+                'g.region',
+                n=region['n'],
+                s=region['s'],
+                e=region['e'],
+                w=region['w'],
+                nsres=info_dem['nsres'],
+                ewres=info_dem['ewres'],
+            )
+
         GRASS.message(
             '--- GRASS GIS 7: Computing viewshed')
         res = GRASS.read_command(
@@ -233,6 +271,17 @@ def interviz(path_info, coordinates, height1, height2, max_distance):
             output=grass_name,
         )
         print(res)
+
+        if region:
+            GRASS.read_command(
+                'g.region',
+                n=info_dem['n'],
+                s=info_dem['s'],
+                e=info_dem['e'],
+                w=info_dem['w'],
+                nsres=info_dem['nsres'],
+                ewres=info_dem['ewres'],
+            )
 
         GRASS.message(
             '--- GRASS GIS 7: Saving resulting raster layer')
@@ -306,7 +355,11 @@ async def sunmask_wrapper(request):
             request.app['to_proj'],
             request.app['info_dem'],
         )
-        max_distance = int(request.rel_url.query.get('max_distance', '4000'))
+        region = _validate_region(
+            request.rel_url.query.get('region', None),
+            request.app['to_proj'],
+            request.app['info_dem'],
+        )
         tz = _validate_number(request.rel_url.query.get('timezone', '1'))
         if not 0 <= int(tz) <= 25:
             raise ValueError('Invalid timezone')
@@ -319,12 +372,12 @@ async def sunmask_wrapper(request):
         sunmask,
         request.app['path_info'],
         request.app['info_dem'],
-        d, c, max_distance, tz,
+        d, c, region, tz,
     )
 
     return web.Response(text=res)
 
-def sunmask(path_info, info_dem, d, coordinates, max_distance, tz):
+def sunmask(path_info, info_dem, d, coordinates, region, tz):
     c = list(map(lambda x: float(x), coordinates.split(',')))
     import grass.script as GRASS
     try:
@@ -332,17 +385,16 @@ def sunmask(path_info, info_dem, d, coordinates, max_distance, tz):
         grass_name = "output_{}".format(uid)
         output_name = os.path.join(path_info['gisdb'], '.'.join([uid, 'tif']))
 
-        ### TODO : ensure no other process is trying to read while
-        ### we use that reduced region :
-        GRASS.read_command(
-            'g.region',
-            n=str(c[1] + max_distance),
-            s=str(c[1] - max_distance),
-            e=str(c[0] + max_distance),
-            w=str(c[0] - max_distance),
-            nsres=info_dem['nsres'],
-            ewres=info_dem['ewres'],
-        )
+        if region:
+            GRASS.read_command(
+                'g.region',
+                n=region['n'],
+                s=region['s'],
+                e=region['e'],
+                w=region['w'],
+                nsres=info_dem['nsres'],
+                ewres=info_dem['ewres'],
+            )
 
         GRASS.message(
             '--- GRASS GIS 7: Computing sunmask')
@@ -380,15 +432,16 @@ def sunmask(path_info, info_dem, d, coordinates, max_distance, tz):
         )
         print(res)
 
-        GRASS.read_command(
-            'g.region',
-            n=info_dem['n'],
-            s=info_dem['s'],
-            e=info_dem['e'],
-            w=info_dem['w'],
-            nsres=info_dem['nsres'],
-            ewres=info_dem['ewres'],
-        )
+        if region:
+            GRASS.read_command(
+                'g.region',
+                n=info_dem['n'],
+                s=info_dem['s'],
+                e=info_dem['e'],
+                w=info_dem['w'],
+                nsres=info_dem['nsres'],
+                ewres=info_dem['ewres'],
+            )
 
     except Exception as e:
         return json.dumps({"message": "Error : {}".format(e)})
@@ -433,8 +486,6 @@ async def init(loop, addr, port, info_dem):
     app['logger'] = logging.getLogger("interviz_app")
     app['to_proj'], app['path_info'] = init_grass(info_dem)
     app['info_dem'] = info_dem
-    app.router.add_route('GET', '/', index_handler)
-    app.router.add_route('GET', '/index', index_handler)
     app.router.add_route('GET', '/sunmask', sunmask_wrapper)
     app.router.add_route('GET', '/viewshed', interviz_wrapper)
 

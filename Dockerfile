@@ -163,7 +163,6 @@ VOLUME /grassdb
 
 WORKDIR /home
 RUN mkdir /home/app && cd /home/app
-COPY index.html /home/app/index.html
 COPY *.zip /home/app/
 COPY app.py /home/app/app.py
 WORKDIR /home/app
