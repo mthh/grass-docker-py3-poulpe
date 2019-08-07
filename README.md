@@ -10,12 +10,12 @@ Note: *This container is based on the [development version of GRASS](https://tra
 
 - Building the container can be done with something like :
 ```
-docker build -t "test_interviz_grass" .
+docker build -t "interviz_sunmask_grass7" .
 ```
 
 - Running it and exposing it on port 5000 :
 ```
-docker run --publish "5000:5000" -it "test_interviz_grass:latest"
+docker run --publish "5000:5000" -it "interviz_sunmask_grass7:latest"
 ```
 
 - Go on http://localhost:5000/ to test it interactively or query the API on http://localhost:5000/viewshed and http://localhost:5000/sunmask. Example :
