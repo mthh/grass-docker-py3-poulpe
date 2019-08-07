@@ -18,8 +18,6 @@ docker build -t "interviz_sunmask_grass7" .
 docker run --publish "5000:5000" -it "interviz_sunmask_grass7:latest"
 ```
 
-- Go on http://localhost:5000/ to test it interactively or query the API on http://localhost:5000/viewshed and http://localhost:5000/sunmask. Example :
-
 #### Viewshed
 
 ```
