@@ -21,7 +21,8 @@ from functools import partial
 from pyproj import Proj, transform
 from concurrent.futures import ProcessPoolExecutor
 from rasterio.features import shapes as rio_shapes
-
+from shapely.geometry import Polygon, shape, mapping
+from shapely.ops import unary_union
 
 async def handle_404(request, response):
     return web.Response(text="ERROR 404 !")
@@ -363,6 +364,13 @@ async def sunmask_wrapper(request):
         timezone = _validate_number(request.rel_url.query.get('timezone', '1'))
         if not 0 <= int(timezone) <= 25:
             raise ValueError('Invalid timezone')
+        sun = request.rel_url.query.get('sun', False)
+        if isinstance(sun, str):
+            if sun.lower() == 'false':
+                sun = False
+            else:
+                sun = True
+
     except Exception as e:
         return web.Response(
             text=json.dumps({"message": "Error : {}".format(e)}))
@@ -375,12 +383,13 @@ async def sunmask_wrapper(request):
         datetime,
         region,
         timezone,
+        sun,
     )
 
     return web.Response(text=res)
 
 
-def sunmask(path_info, info_dem, d, region, tz):
+def sunmask(path_info, info_dem, d, region, tz, sun):
     import grass.script as GRASS
     try:
         uid = str(uuid.uuid4()).replace('-', '')
@@ -456,11 +465,28 @@ def sunmask(path_info, info_dem, d, region, tz):
         epsg_value = src.crs.to_epsg()
         image = src.read(1)
         results = [{
-            'properties': {'sun': v},
+            'properties': {'shadow': v},
             'geometry': s,
             'type': 'Feature',
             } for i, (s, v) in enumerate(rio_shapes(
                 image, mask=None, transform=src.transform)) if v == 1.0]
+
+    # In this case we want the difference between the region and the
+    # computed areas of cast shadow
+    if sun:
+        region = Polygon([
+            (float(region['w']), float(region['s'])),
+            (float(region['e']), float(region['s'])),
+            (float(region['e']), float(region['n'])),
+            (float(region['w']), float(region['n'])),
+            (float(region['w']), float(region['s']))
+        ])
+        shadow_union = unary_union([shape(ft['geometry']) for ft in results])
+        results = [{
+            'type': 'Feature',
+            'geometry': mapping(region.difference(shadow_union)),
+            'properties': {'sun': 1.0}
+        }]
 
     with open('/tmp/{}.geojson'.format(uid), 'w') as f:
         f.write(json.dumps({"type": "FeatureCollection", "features": results}))

@@ -63,8 +63,8 @@ curl "http://localhost:5000/sunmask?year=2000&month=10&day=1&hour=15&minute=49&r
 |-----------|---------------------------------------------------------------------------------------------------------|
 | region    | String of format {west},{east},{sud},{north}. The region to use. Defaults to the region of the dataset. |
 | timezone  | Integer >= 0. East positive, offset from GMT. Defaults to 1.                                            |
+| sun       | Boolean. Wheter to returns the areas of sun instead of the areas of shadows. Defaults to 'false'.       |
 
-
-Returns a GeoJSON FeatureCollection corresponding to areas of cast shadow at the given datetime.
+Returns a GeoJSON FeatureCollection corresponding to areas of cast shadow at the given datetime (or the difference between the region and theses areas, if the 'sun' argument is set to 'true').
 
 See GRASS [r.viewshed](https://grass.osgeo.org/grass77/manuals/r.viewshed.html) and [r.sunmask](https://grass.osgeo.org/grass77/manuals/r.sunmask.html) documentation for details on the methods used.
