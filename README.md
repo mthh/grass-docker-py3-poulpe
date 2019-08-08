@@ -2,7 +2,7 @@
 
 Note: *This container is based on the [development version of GRASS](https://trac.osgeo.org/grass/wiki/DownloadSource#GitGRASSmainsourcecoderepository) (current state of the master branch when building the container).*  
 
-Note: *See the ['with_region'](https://github.com/mthh/grass-docker-py3-poulpe/tree/with_region) branch for the same kind of container, but based on GRASS 7.8 release branch and allowing to specify an optional region on each query (instead of specifying an optional 'max_distance').*
+Note: *See the ['with_region' branch](https://github.com/mthh/grass-docker-py3-poulpe/tree/with_region) (which may be better maintained) for the same kind of container, but based on GRASS 7.8 release branch and allowing to specify an optional region on each query (instead of specifying an optional 'max_distance'). *
 
 ### Usage :
 
