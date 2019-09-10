@@ -9,6 +9,7 @@ import json
 import logging
 import math
 import os
+import numpy as np
 import rasterio as rio
 import shlex
 import subprocess
@@ -17,6 +18,7 @@ import tempfile
 import uuid
 import uvloop
 from aiohttp import web
+from datetime import datetime
 from functools import partial
 from pyproj import Proj, transform
 from concurrent.futures import ProcessPoolExecutor
@@ -236,13 +238,14 @@ async def interviz_wrapper(request):
         request.app["ProcessPool"],
         interviz,
         request.app['path_info'],
+        request.app['info_dem'],
         c, h1, h2, region,
     )
 
     return web.Response(text=res)
 
 
-def interviz(path_info, coordinates, height1, height2, region):
+def interviz(path_info, info_dem, coordinates, height1, height2, region):
     import grass.script as GRASS
     try:
         uid = str(uuid.uuid4()).replace('-', '')
@@ -507,6 +510,181 @@ def sunmask(path_info, info_dem, d, region, tz, sun):
     return out.decode()
 
 
+async def sun_wrapper(request):
+    try:
+        dt = _validate_datetime(
+            request.rel_url.query['year'],
+            request.rel_url.query['month'],
+            request.rel_url.query['day'],
+            request.rel_url.query['hour'],
+            request.rel_url.query['minute'],
+        )
+        day = datetime(
+            int(dt[0]),
+            int(dt[1]),
+            int(dt[2]),
+        ).timetuple().tm_yday
+        time = float(dt[3]) + (float(dt[4]) / 60)
+        region = _validate_region(
+            request.rel_url.query.get('region', None),
+            request.app['to_proj'],
+            request.app['info_dem'],
+        )
+        timezone = _validate_number(request.rel_url.query.get('timezone', '1'))
+        if not 0 <= int(timezone) <= 25:
+            raise ValueError('Invalid timezone')
+        is_sun = request.rel_url.query.get('sun', False)
+        if isinstance(sun, str):
+            if is_sun.lower() == 'false':
+                is_sun = False
+            else:
+                is_sun = True
+
+    except Exception as e:
+        return web.Response(
+            text=json.dumps({"message": "Error : {}".format(e)}))
+
+    res = await request.app.loop.run_in_executor(
+        request.app["ProcessPool"],
+        sun,
+        request.app['path_info'],
+        request.app['info_dem'],
+        day,
+        time,
+        region,
+        timezone,
+        is_sun,
+    )
+
+    return web.Response(text=res)
+
+
+def sun(path_info, info_dem, day, time, region, tz, is_sun):
+    import grass.script as GRASS
+    try:
+        uid = str(uuid.uuid4()).replace('-', '')
+        grass_name = "output_{}".format(uid)
+        output_name = os.path.join(path_info['gisdb'], '.'.join([uid, 'tif']))
+
+        if region:
+            GRASS.message(
+                '--- GRASS GIS 7: Reducing the region')
+            GRASS.read_command(
+                'g.region',
+                n=region['n'],
+                s=region['s'],
+                e=region['e'],
+                w=region['w'],
+                nsres=info_dem['nsres'],
+                ewres=info_dem['ewres'],
+            )
+
+        GRASS.message(
+            '--- GRASS GIS 7: Computing longitude map')
+
+        GRASS.read_command(
+            'r.latlong',
+            flags='l',
+            input='rast_5cb08c8150bbc7',
+            output='rast_long_5cb08c8150bbc7',
+        )
+
+        GRASS.message(
+            '--- GRASS GIS 7: Computing sun incidence')
+        res = GRASS.read_command(
+            'r.sun',
+            elevation='rast_5cb08c8150bbc7',
+            long='rast_long_5cb08c8150bbc7',
+            day=day,
+            time=time,
+            civil_time=tz,
+            incidout=grass_name,
+            nprocs=2,
+        )
+        print(res)
+
+        GRASS.message(
+            '--- GRASS GIS 7: Saving resulting raster layer')
+        res = GRASS.read_command(
+            'r.out.gdal',
+            input=grass_name,
+            output=output_name,
+            format="GTiff",
+            createopt="TFW=YES,COMPRESS=LZW",
+        )
+        print(res)
+
+        GRASS.message(
+            '--- GRASS GIS 7: Remove temporary result raster from GRASS')
+        res = GRASS.read_command(
+            'g.remove',
+            flags='f',
+            type='raster',
+            name=grass_name,
+        )
+        print(res)
+        res = GRASS.read_command(
+            'g.remove',
+            flags='f',
+            type='raster',
+            name='rast_long_5cb08c8150bbc7',
+        )
+        print(res)
+        if region:
+            GRASS.message(
+                '--- GRASS GIS 7: Restoring the region')
+            GRASS.read_command(
+                'g.region',
+                n=info_dem['n'],
+                s=info_dem['s'],
+                e=info_dem['e'],
+                w=info_dem['w'],
+                nsres=info_dem['nsres'],
+                ewres=info_dem['ewres'],
+            )
+
+    except Exception as e:
+        return json.dumps({"message": "Error : {}".format(e)})
+
+    with rio.open(output_name) as src:
+        epsg_value = src.crs.to_epsg()
+        image = src.read(1)
+        image = np.nan_to_num(image)
+        image[image >= 1.0] = 1.0
+        if is_sun:
+            results = [{
+                'properties': {'sun': v},
+                'geometry': s,
+                'type': 'Feature',
+                } for i, (s, v) in enumerate(rio_shapes(
+                    image, mask=None, transform=src.transform)) if v == 1.0]
+        else:
+            results = [{
+                'properties': {'sun': v},
+                'geometry': s,
+                'type': 'Feature',
+                } for i, (s, v) in enumerate(rio_shapes(
+                    image, mask=None, transform=src.transform)) if v != 1.0]
+
+    with open('/tmp/{}.geojson'.format(uid), 'w') as f:
+        f.write(json.dumps({"type": "FeatureCollection", "features": results}))
+
+    p = subprocess.Popen(
+        shlex.split(
+            'ogr2ogr -s_srs "EPSG:{}" -t_srs "EPSG:4326" '
+            '-f GeoJSON /dev/stdout /tmp/{}.geojson'.format(epsg_value, uid)),
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+    )
+    out, err = p.communicate()
+    os.remove('/tmp/{}.geojson'.format(uid))
+    if p.returncode != 0:
+        print('Error: ', err)
+        return json.dumps({"message": "Error : {}".format(err)})
+
+    return out.decode()
+
+
 async def init(loop, addr, port, info_dem):
     logging.basicConfig(level=logging.INFO)
 
@@ -518,6 +696,7 @@ async def init(loop, addr, port, info_dem):
     app['logger'] = logging.getLogger("interviz_app")
     app['to_proj'], app['path_info'] = init_grass(info_dem)
     app['info_dem'] = info_dem
+    app.router.add_route('GET', '/sun', sun_wrapper)
     app.router.add_route('GET', '/sunmask', sunmask_wrapper)
     app.router.add_route('GET', '/viewshed', interviz_wrapper)
 

@@ -92,11 +92,6 @@ ENV LDFLAGS "$MYLDFLAGS"
 ENV CFLAGS "$MYCFLAGS"
 ENV CXXFLAGS "$MYCXXFLAGS"
 
-# Fixup python shebangs - TODO: will be resolved in future by grass-core
-WORKDIR /src/grass_build
-RUN find -name '*.py' | xargs sed -i 's,#!/usr/bin/env python,#!/usr/bin/env python3,'
-RUN find -name '*.py' | xargs sed -i 's,#!/usr/bin/env python33,#!/usr/bin/env python3,'
-
 # Configure compile and install GRASS GIS
 ENV GRASS_PYTHON=/usr/bin/python3
 ENV NUMTHREADS=4
