@@ -2,8 +2,8 @@ FROM ubuntu:18.04
 
 ENV DEBIAN_FRONTEND noninteractive
 
-ARG GRASS_VERSION=7.7
-ARG GRASS_SHORT_VERSION=77
+ARG GRASS_VERSION=7.9
+ARG GRASS_SHORT_VERSION=79
 
 SHELL ["/bin/bash", "-c"]
 
@@ -92,11 +92,6 @@ ENV LDFLAGS "$MYLDFLAGS"
 ENV CFLAGS "$MYCFLAGS"
 ENV CXXFLAGS "$MYCXXFLAGS"
 
-# Fixup python shebangs - TODO: will be resolved in future by grass-core
-WORKDIR /src/grass_build
-RUN find -name '*.py' | xargs sed -i 's,#!/usr/bin/env python,#!/usr/bin/env python3,'
-RUN find -name '*.py' | xargs sed -i 's,#!/usr/bin/env python33,#!/usr/bin/env python3,'
-
 # Configure compile and install GRASS GIS
 ENV GRASS_PYTHON=/usr/bin/python3
 ENV NUMTHREADS=4
@@ -153,7 +148,7 @@ RUN update-alternatives --remove python /usr/bin/python3
 
 
 # add GRASS GIS envs for python usage
-ENV GISBASE "/usr/local/grass77/"
+ENV GISBASE "/usr/local/grass79/"
 ENV GRASSBIN "/usr/local/bin/grass"
 ENV PYTHONPATH "${PYTHONPATH}:$GISBASE/etc/python/"
 ENV LD_LIBRARY_PATH "$LD_LIBRARY_PATH:$GISBASE/lib"

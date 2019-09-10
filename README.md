@@ -1,4 +1,4 @@
-## Docker container to expose GRASS 7.7 `r.viewshed` and `r.sunmask` functionnalities
+## Docker container to expose GRASS 7 `r.viewshed` and `r.sunmask` functionnalities
 
 Note: *This container is based on the [development version of GRASS](https://trac.osgeo.org/grass/wiki/DownloadSource#GitGRASSmainsourcecoderepository) (current state of the master branch when building the container).*  
 
